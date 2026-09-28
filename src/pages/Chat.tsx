@@ -29,7 +29,7 @@ export function ChatPage() {
         <div>
           <h1 className="text-xl font-bold text-slate-900">Recommendation chat</h1>
           <p className="text-xs text-slate-500">
-            Latest message + sessionId each turn · X-User-Id header
+            Latest message + sessionId each turn
           </p>
         </div>
         <Button

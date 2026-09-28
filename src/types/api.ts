@@ -132,22 +132,6 @@ export interface GeneratedRecipe {
   created_at: string;
 }
 
-export interface AuthResponse {
-  user: {
-    id: string;
-    email?: string;
-    user_metadata?: Record<string, unknown>;
-  };
-  session: {
-    access_token: string;
-    refresh_token: string;
-    expires_in?: number;
-    token_type?: string;
-  };
-  profileId: string | null;
-  onboardingComplete: boolean;
-}
-
 export interface ChatPersistedState {
   sessionId: string | null;
   messages: ChatMessage[];

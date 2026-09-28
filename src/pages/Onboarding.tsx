@@ -7,7 +7,7 @@ import { useChat } from '@/hooks/useChat';
 
 /**
  * Onboarding starts a chat session with the main agent:
- * POST /api/agent/chat + X-User-Id, body { message } only (no sessionId).
+ * POST /api/agent/chat with the Supabase JWT, body { message } only (no sessionId).
  * Then navigates to /chat with the returned sessionId saved locally.
  */
 export function OnboardingPage() {

@@ -8,7 +8,6 @@ import {
   type ReactNode,
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
-import * as authClient from '@/api/authClient';
 import { supabase } from '@/auth/supabase';
 import { clearChatHistory } from '@/store/chatStore';
 
@@ -31,8 +30,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 function readProfileId(user: User | null): string | null {
-  const value = user?.user_metadata?.meals_profile_id;
-  return typeof value === 'string' ? value : null;
+  return user?.id ?? null;
 }
 
 function readOnboarding(user: User | null): boolean {
@@ -70,35 +68,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const applyAuthResponse = useCallback(
-    async (response: Awaited<ReturnType<typeof authClient.login>>) => {
-      const { error } = await supabase.auth.setSession({
-        access_token: response.session.access_token,
-        refresh_token: response.session.refresh_token,
-      });
-      if (error) throw error;
-
-      const { data } = await supabase.auth.getSession();
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-    },
-    [],
-  );
-
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const response = await authClient.login(email, password);
-      await applyAuthResponse(response);
-    },
-    [applyAuthResponse],
-  );
+  const login = useCallback(async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    setSession(data.session);
+    setUser(data.user);
+  }, []);
 
   const signup = useCallback(
     async (email: string, password: string, displayName: string) => {
-      const response = await authClient.signup(email, password, displayName);
-      await applyAuthResponse(response);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: displayName,
+            onboarding_complete: false,
+          },
+        },
+      });
+      if (error) throw error;
+      if (!data.session) {
+        throw new Error(
+          'Check your email to confirm your account, then sign in.',
+        );
+      }
+      setSession(data.session);
+      setUser(data.session.user);
     },
-    [applyAuthResponse],
+    [],
   );
 
   const signOut = useCallback(async () => {

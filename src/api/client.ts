@@ -1,27 +1,25 @@
+import { supabase } from '@/auth/supabase';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-interface Options extends RequestInit {
-  skipUserId?: boolean;
-}
-
-export async function api<T>(
-  path: string,
-  init: Options = {},
-  profileId?: string | null,
-): Promise<T> {
-  const { skipUserId, ...fetchInit } = init;
+export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const accessToken = data.session?.access_token;
+  if (!accessToken) {
+    throw new Error('Not signed in');
+  }
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
+    Authorization: `Bearer ${accessToken}`,
     ...(import.meta.env.VITE_API_KEY
       ? { 'X-Api-Key': import.meta.env.VITE_API_KEY }
       : {}),
-    ...(!skipUserId && profileId ? { 'X-User-Id': profileId } : {}),
-    ...((fetchInit.headers as Record<string, string> | undefined) ?? {}),
+    ...((init.headers as Record<string, string> | undefined) ?? {}),
   };
 
   const response = await fetch(`${BASE_URL}${path}`, {
-    ...fetchInit,
+    ...init,
     headers,
   });
 

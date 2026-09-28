@@ -18,22 +18,15 @@ export function useRecommendations(limit = 10) {
   return useQuery({
     queryKey: ['recommendations', profileId, limit],
     enabled: Boolean(profileId),
-    queryFn: () =>
-      api<Recommendation[]>(
-        `/api/recommendations?limit=${limit}`,
-        {},
-        profileId,
-      ),
+    queryFn: () => api<Recommendation[]>(`/api/recommendations?limit=${limit}`),
   });
 }
 
 export function useRecipe(recipeId: string | undefined) {
-  const { profileId } = useAuth();
   return useQuery({
     queryKey: ['recipe', recipeId],
     enabled: Boolean(recipeId),
-    queryFn: () =>
-      api<RecipeDetail>(`/api/recipes/${recipeId}`, {}, profileId),
+    queryFn: () => api<RecipeDetail>(`/api/recipes/${recipeId}`),
   });
 }
 
@@ -42,7 +35,7 @@ export function useProfile() {
   return useQuery({
     queryKey: ['profile', profileId],
     enabled: Boolean(profileId),
-    queryFn: () => api<Profile>(`/api/profiles/${profileId}`, {}, profileId),
+    queryFn: () => api<Profile>(`/api/profiles/${profileId}`),
   });
 }
 
@@ -51,14 +44,10 @@ export function useUpdateProfile() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (displayName: string) =>
-      api<Profile>(
-        `/api/profiles/${profileId}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({ displayName }),
-        },
-        profileId,
-      ),
+      api<Profile>(`/api/profiles/${profileId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ displayName }),
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['profile', profileId] });
     },
@@ -70,7 +59,7 @@ export function useConstraints() {
   return useQuery({
     queryKey: ['constraints', profileId],
     enabled: Boolean(profileId),
-    queryFn: () => api<Constraint[]>('/api/constraints', {}, profileId),
+    queryFn: () => api<Constraint[]>('/api/constraints'),
   });
 }
 
@@ -82,11 +71,10 @@ export function useAddConstraint() {
       constraint_type: Constraint['constraint_type'];
       value: string;
     }) =>
-      api<Constraint>(
-        '/api/constraints',
-        { method: 'POST', body: JSON.stringify(payload) },
-        profileId,
-      ),
+      api<Constraint>('/api/constraints', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['constraints', profileId] });
     },
@@ -98,11 +86,9 @@ export function useDeleteConstraint() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (constraintId: string) =>
-      api<{ status: string }>(
-        `/api/constraints/${constraintId}`,
-        { method: 'DELETE' },
-        profileId,
-      ),
+      api<{ status: string }>(`/api/constraints/${constraintId}`, {
+        method: 'DELETE',
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['constraints', profileId] });
     },
@@ -114,7 +100,7 @@ export function usePreferences() {
   return useQuery({
     queryKey: ['preferences', profileId],
     enabled: Boolean(profileId),
-    queryFn: () => api<Preference[]>('/api/preferences', {}, profileId),
+    queryFn: () => api<Preference[]>('/api/preferences'),
   });
 }
 
@@ -127,11 +113,10 @@ export function useAddPreference() {
       value: string;
       weight: number;
     }) =>
-      api<Preference>(
-        '/api/preferences',
-        { method: 'POST', body: JSON.stringify(payload) },
-        profileId,
-      ),
+      api<Preference>('/api/preferences', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['preferences', profileId] });
     },
@@ -150,11 +135,9 @@ export function useDeletePreference() {
         preference_type: payload.preference_type,
         value: payload.value,
       });
-      return api<{ status: string }>(
-        `/api/preferences?${qs.toString()}`,
-        { method: 'DELETE' },
-        profileId,
-      );
+      return api<{ status: string }>(`/api/preferences?${qs.toString()}`, {
+        method: 'DELETE',
+      });
     },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['preferences', profileId] });
@@ -163,14 +146,12 @@ export function useDeletePreference() {
 }
 
 export function useSubmitFeedback() {
-  const { profileId } = useAuth();
   return useMutation({
     mutationFn: (payload: FeedbackPayload) =>
-      api<{ status: string }>(
-        '/api/feedback',
-        { method: 'POST', body: JSON.stringify(payload) },
-        profileId,
-      ),
+      api<{ status: string }>('/api/feedback', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }),
   });
 }
 
@@ -179,14 +160,10 @@ export function useGenerateRecipe() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (prompt?: string) =>
-      api<GeneratedRecipe>(
-        '/api/generate',
-        {
-          method: 'POST',
-          body: JSON.stringify(prompt ? { prompt } : {}),
-        },
-        profileId,
-      ),
+      api<GeneratedRecipe>('/api/generate', {
+        method: 'POST',
+        body: JSON.stringify(prompt ? { prompt } : {}),
+      }),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['generated', profileId] });
     },
@@ -199,11 +176,7 @@ export function useGeneratedRecipes(limit = 20) {
     queryKey: ['generated', profileId, limit],
     enabled: Boolean(profileId),
     queryFn: () =>
-      api<GeneratedRecipe[]>(
-        `/api/generate?limit=${limit}`,
-        {},
-        profileId,
-      ),
+      api<GeneratedRecipe[]>(`/api/generate?limit=${limit}`),
   });
 }
 
@@ -215,8 +188,6 @@ export function useRecommendationHistory(limit = 20) {
     queryFn: () =>
       api<RecommendationHistoryItem[]>(
         `/api/history/recommendations?limit=${limit}`,
-        {},
-        profileId,
       ),
   });
 }
@@ -227,10 +198,6 @@ export function useFeedbackHistory(limit = 20) {
     queryKey: ['history-feedback', profileId, limit],
     enabled: Boolean(profileId),
     queryFn: () =>
-      api<FeedbackHistoryItem[]>(
-        `/api/history/feedback?limit=${limit}`,
-        {},
-        profileId,
-      ),
+      api<FeedbackHistoryItem[]>(`/api/history/feedback?limit=${limit}`),
   });
 }

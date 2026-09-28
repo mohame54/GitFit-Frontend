@@ -64,3 +64,4 @@ Desktop.ini
 .eslintcache
 .stylelintcache
 .prettiercache
+.env

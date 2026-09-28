@@ -8,13 +8,13 @@ import {
 } from '@/store/chatStore';
 import type { ChatMessage, ChatRequest, ChatResponse } from '@/types/api';
 
-/** Exact first onboarding turn — no sessionId yet; user via X-User-Id only. */
+/** Exact first onboarding turn — no sessionId yet; user via the Supabase JWT. */
 export const ONBOARDING_MESSAGE =
   "I'm new, help me set up my food preferences";
 
 /**
  * Chat protocol: send only the latest { message, sessionId? }.
- * Identity is always X-User-Id. Backend owns the transcript.
+ * Identity is the Supabase access token (Authorization: Bearer). Backend owns the transcript.
  * Local messages are UI-only bubbles.
  */
 export function useChat() {
@@ -38,14 +38,10 @@ export function useChat() {
         ...(currentSessionId ? { sessionId: currentSessionId } : {}),
       };
 
-      return api<ChatResponse>(
-        '/api/agent/chat',
-        {
-          method: 'POST',
-          body: JSON.stringify(body),
-        },
-        profileId,
-      );
+      return api<ChatResponse>('/api/agent/chat', {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
     },
     [profileId],
   );

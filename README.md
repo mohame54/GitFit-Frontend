@@ -1,6 +1,6 @@
 # GetFit Frontend
 
-React + Vite SPA for the GetFit meals personalization product. Auth is handled by a Supabase Edge Function (copyable from `scripts/`). The Meals API lives on Cloud Run.
+React + Vite SPA for the GetFit meals personalization product. Auth is Supabase email and password. The Meals API lives on Cloud Run and receives the Supabase access token.
 
 ## Stack
 
@@ -28,17 +28,12 @@ npm run dev
 |----------|---------|
 | `VITE_SUPABASE_URL` | Supabase project URL |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
-| `VITE_AUTH_FUNCTION_URL` | Deployed auth Edge Function URL |
 | `VITE_API_BASE_URL` | Meals API Cloud Run URL (leave empty locally to use Vite `/api` proxy → `localhost:3000`) |
 | `VITE_API_KEY` | Optional Meals API key |
 
 All `VITE_*` values are baked into the client bundle at build time.
 
-### Auth Edge Function
-
-Copy [`scripts/supabase-auth-edge-function`](scripts/supabase-auth-edge-function) into your Supabase project and deploy as `auth`. See that folder’s README for secrets and deploy commands.
-
-The frontend calls the function for signup/login. On signup, the function creates a Meals API profile and stores `meals_profile_id` in user metadata.
+Signup and login use `supabase.auth.signUp` and `signInWithPassword`. The Supabase user id is the meals profile id sent in profile URLs. Turn off email confirmation in the Supabase project if signup should return a session immediately.
 
 ### Local API proxy
 
@@ -48,7 +43,7 @@ The frontend calls the function for signup/login. On signup, the function create
 
 | Route | Description |
 |-------|-------------|
-| `/login`, `/signup` | Auth via Edge Function |
+| `/login`, `/signup` | Supabase email and password |
 | `/onboarding` | Optional AI-guided preference setup |
 | `/home` | Swipe recommendation feed |
 | `/recipe/:recipeId` | Recipe detail + feedback |
@@ -61,9 +56,9 @@ The frontend calls the function for signup/login. On signup, the function create
 
 Onboarding is not required to use the app. Visiting `/onboarding` (e.g. after signup) automatically starts a chat session:
 
-1. `POST /api/agent/chat` with `X-User-Id` and body `{ "message": "I'm new, help me set up my food preferences" }` (no `sessionId` yet)
+1. `POST /api/agent/chat` with `Authorization: Bearer <supabase access token>` and body `{ "message": "I'm new, help me set up my food preferences" }` (no `sessionId` yet)
 2. Save returned `sessionId` locally
-3. Continue in `/chat` — each later turn sends `{ "sessionId": "...", "message": "..." }` plus the same `X-User-Id` header
+3. Continue in `/chat` — each later turn sends `{ "sessionId": "...", "message": "..." }` plus the same bearer token
 
 Users can still skip and manage constraints/preferences later in Profile.
 
@@ -72,7 +67,7 @@ Users can still skip and manage constraints/preferences later in Profile.
 The Meals `/api/agent/chat` endpoint owns conversation history. The client:
 
 1. Sends only the latest `{ message }` plus previous `sessionId` when continuing
-2. Identifies the user with `X-User-Id` (not in the JSON body)
+2. Identifies the user with the Supabase JWT (`Authorization: Bearer`), not a user id in the JSON body
 3. Persists `sessionId` and UI bubbles in `localStorage` (`getfit_chat_state`)
 4. Renders `response.text` for the assistant bubble (does not send a transcript)
 5. Clears local chat state on sign-out / Clear chat
@@ -85,7 +80,6 @@ Use `GET /api/recommendations` for structured swipe cards. Use chat when the use
 docker build \
   --build-arg VITE_SUPABASE_URL=... \
   --build-arg VITE_SUPABASE_ANON_KEY=... \
-  --build-arg VITE_AUTH_FUNCTION_URL=... \
   --build-arg VITE_API_BASE_URL=... \
   --build-arg VITE_API_KEY=... \
   -t getfit-frontend .
@@ -104,7 +98,6 @@ export IMAGE=gcr.io/$PROJECT_ID/getfit-frontend
 docker build \
   --build-arg VITE_SUPABASE_URL=... \
   --build-arg VITE_SUPABASE_ANON_KEY=... \
-  --build-arg VITE_AUTH_FUNCTION_URL=... \
   --build-arg VITE_API_BASE_URL=... \
   --build-arg VITE_API_KEY=... \
   -t $IMAGE .
@@ -128,7 +121,7 @@ Add the Cloud Run URL to:
 1. Supabase Auth allowed redirect / site URLs
 2. Meals API CORS allowed origins (backend task)
 
-Backend CORS must allow headers `Content-Type`, `X-Api-Key`, and `X-User-Id`.
+Backend CORS must allow headers `Content-Type`, `Authorization`, and `X-Api-Key`. The meals API should verify the Supabase JWT and use `sub` as the profile id.
 
 ## Scripts
 
