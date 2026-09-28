@@ -8,24 +8,17 @@ RUN npm ci
 
 COPY . .
 
-# Optional overrides. Do not ENV empty values — that shadows .env.production.
-ARG VITE_SUPABASE_URL
-ARG VITE_SUPABASE_ANON_KEY
-ARG VITE_API_BASE_URL
-ARG VITE_API_KEY
-
-RUN if [ -z "$VITE_SUPABASE_URL" ]; then unset VITE_SUPABASE_URL; fi && \
-    if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then unset VITE_SUPABASE_ANON_KEY; fi && \
-    if [ -z "$VITE_API_BASE_URL" ]; then unset VITE_API_BASE_URL; fi && \
-    if [ -z "$VITE_API_KEY" ]; then unset VITE_API_KEY; fi && \
-    npm run build
+RUN npm run build
 
 # Stage 2 — serve
 FROM nginx:alpine
 
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN chmod +x /docker-entrypoint.sh
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 EXPOSE 8000
 
-CMD ["nginx", "-g", "daemon off;"]
+# Writes /env-config.js from the Cloud Run environment, then starts nginx.
+ENTRYPOINT ["/docker-entrypoint.sh"]

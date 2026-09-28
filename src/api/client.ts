@@ -1,9 +1,12 @@
 import { supabase } from '@/auth/supabase';
+import { env } from '@/config';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+const BASE_URL = env.apiBaseUrl;
 
-if (!BASE_URL) {
-  throw new Error('VITE_API_BASE_URL is not set');
+if (!BASE_URL && import.meta.env.PROD) {
+  throw new Error(
+    'Missing VITE_API_BASE_URL. Set it as a Cloud Run environment variable, or pass it as a Docker --build-arg.',
+  );
 }
 
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
@@ -16,9 +19,7 @@ export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${accessToken}`,
-    ...(import.meta.env.VITE_API_KEY
-      ? { 'X-Api-Key': import.meta.env.VITE_API_KEY }
-      : {}),
+    ...(env.apiKey ? { 'X-Api-Key': env.apiKey } : {}),
     ...((init.headers as Record<string, string> | undefined) ?? {}),
   };
 
