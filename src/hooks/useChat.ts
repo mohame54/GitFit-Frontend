@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { api } from '@/api/client';
 import { useAuth } from '@/auth/AuthProvider';
+import { refreshProfileQueries } from '@/hooks/useApi';
 import {
   clearChatHistory,
   loadChatState,
@@ -27,6 +29,7 @@ function withoutOnboardingPrompt(messages: ChatMessage[]): ChatMessage[] {
  */
 export function useChat() {
   const { profileId } = useAuth();
+  const queryClient = useQueryClient();
   const initial = loadChatState();
   const [sessionId, setSessionId] = useState<string | null>(initial.sessionId);
   const [messages, setMessages] = useState<ChatMessage[]>(() =>
@@ -74,6 +77,7 @@ export function useChat() {
           ...current,
           { role: 'assistant', content: response.text },
         ]);
+        refreshProfileQueries(queryClient, profileId);
       } catch (err) {
         setMessages(previous);
         setError(err instanceof Error ? err.message : 'Failed to send message');
@@ -81,7 +85,7 @@ export function useChat() {
         setSending(false);
       }
     },
-    [messages, postChat, profileId, sessionId],
+    [messages, postChat, profileId, queryClient, sessionId],
   );
 
   /** First onboarding turn: message only, no sessionId. Persist returned sessionId. */
@@ -101,6 +105,7 @@ export function useChat() {
 
       setSessionId(response.sessionId);
       setMessages(nextMessages);
+      refreshProfileQueries(queryClient, profileId);
       saveChatState({
         sessionId: response.sessionId,
         messages: nextMessages,
@@ -115,7 +120,7 @@ export function useChat() {
     } finally {
       setSending(false);
     }
-  }, [postChat, profileId]);
+  }, [postChat, profileId, queryClient]);
 
   const clear = useCallback(() => {
     clearChatHistory();

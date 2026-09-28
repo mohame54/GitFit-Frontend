@@ -13,6 +13,35 @@ import type {
   RecommendationHistoryItem,
 } from '@/types/api';
 
+function isConstraint(value: unknown): value is Constraint {
+  if (!value || typeof value !== 'object') return false;
+  const row = value as Constraint;
+  return (
+    typeof row.id === 'string' &&
+    typeof row.constraint_type === 'string' &&
+    typeof row.value === 'string'
+  );
+}
+
+function isPreference(value: unknown): value is Preference {
+  if (!value || typeof value !== 'object') return false;
+  const row = value as Preference;
+  return (
+    typeof row.preference_type === 'string' &&
+    typeof row.value === 'string' &&
+    typeof row.weight === 'number'
+  );
+}
+
+export function refreshProfileQueries(
+  qc: ReturnType<typeof useQueryClient>,
+  profileId: string | null,
+) {
+  void qc.invalidateQueries({ queryKey: ['constraints', profileId] });
+  void qc.invalidateQueries({ queryKey: ['preferences', profileId] });
+  void qc.invalidateQueries({ queryKey: ['recommendations', profileId] });
+}
+
 export function useRecommendations(limit = 10) {
   const { profileId } = useAuth();
   return useQuery({
@@ -59,7 +88,14 @@ export function useConstraints() {
   return useQuery({
     queryKey: ['constraints', profileId],
     enabled: Boolean(profileId),
-    queryFn: () => api<Constraint[]>('/api/constraints'),
+    refetchOnMount: 'always',
+    queryFn: async () => {
+      const body = await api<unknown>('/api/constraints');
+      if (!Array.isArray(body)) {
+        throw new Error('Constraints response was not a list');
+      }
+      return body as Constraint[];
+    },
   });
 }
 
@@ -75,7 +111,20 @@ export function useAddConstraint() {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
-    onSuccess: () => {
+    onSuccess: (created) => {
+      if (isConstraint(created)) {
+        qc.setQueryData<Constraint[]>(['constraints', profileId], (current) => {
+          const rows = Array.isArray(current) ? current : [];
+          return [
+            ...rows.filter(
+              (row) =>
+                row.constraint_type !== created.constraint_type ||
+                row.value !== created.value,
+            ),
+            created,
+          ];
+        });
+      }
       void qc.invalidateQueries({ queryKey: ['constraints', profileId] });
     },
   });
@@ -100,7 +149,14 @@ export function usePreferences() {
   return useQuery({
     queryKey: ['preferences', profileId],
     enabled: Boolean(profileId),
-    queryFn: () => api<Preference[]>('/api/preferences'),
+    refetchOnMount: 'always',
+    queryFn: async () => {
+      const body = await api<unknown>('/api/preferences');
+      if (!Array.isArray(body)) {
+        throw new Error('Preferences response was not a list');
+      }
+      return body as Preference[];
+    },
   });
 }
 
@@ -117,7 +173,20 @@ export function useAddPreference() {
         method: 'POST',
         body: JSON.stringify(payload),
       }),
-    onSuccess: () => {
+    onSuccess: (created) => {
+      if (isPreference(created)) {
+        qc.setQueryData<Preference[]>(['preferences', profileId], (current) => {
+          const rows = Array.isArray(current) ? current : [];
+          return [
+            ...rows.filter(
+              (row) =>
+                row.preference_type !== created.preference_type ||
+                row.value !== created.value,
+            ),
+            created,
+          ];
+        });
+      }
       void qc.invalidateQueries({ queryKey: ['preferences', profileId] });
     },
   });

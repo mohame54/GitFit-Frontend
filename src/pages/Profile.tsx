@@ -55,22 +55,36 @@ export function ProfilePage() {
   async function onAddConstraint(e: FormEvent) {
     e.preventDefault();
     if (!constraintValue.trim()) return;
-    await addConstraint.mutateAsync({
-      constraint_type: constraintType,
-      value: constraintValue.trim().toLowerCase(),
-    });
-    setConstraintValue('');
+    setError(null);
+    setMessage(null);
+    try {
+      await addConstraint.mutateAsync({
+        constraint_type: constraintType,
+        value: constraintValue.trim().toLowerCase(),
+      });
+      setConstraintValue('');
+      setMessage('Constraint saved');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add constraint');
+    }
   }
 
   async function onAddPreference(e: FormEvent) {
     e.preventDefault();
     if (!prefValue.trim()) return;
-    await addPreference.mutateAsync({
-      preference_type: prefType,
-      value: prefValue.trim().toLowerCase(),
-      weight: prefWeight,
-    });
-    setPrefValue('');
+    setError(null);
+    setMessage(null);
+    try {
+      await addPreference.mutateAsync({
+        preference_type: prefType,
+        value: prefValue.trim().toLowerCase(),
+        weight: prefWeight,
+      });
+      setPrefValue('');
+      setMessage('Preference saved');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add preference');
+    }
   }
 
   async function onSignOut() {
@@ -118,8 +132,19 @@ export function ProfilePage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="font-semibold">Constraints</h2>
         {constraints.isLoading ? <Spinner /> : null}
+        {constraints.isError ? (
+          <div className="mt-3">
+            <ErrorBox
+              message={
+                constraints.error instanceof Error
+                  ? constraints.error.message
+                  : 'Failed to load constraints'
+              }
+            />
+          </div>
+        ) : null}
         <ul className="mt-3 space-y-2">
-          {(constraints.data ?? []).map((c) => (
+          {(Array.isArray(constraints.data) ? constraints.data : []).map((c) => (
             <li
               key={c.id}
               className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"
@@ -164,8 +189,19 @@ export function ProfilePage() {
       <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <h2 className="font-semibold">Preferences</h2>
         {preferences.isLoading ? <Spinner /> : null}
+        {preferences.isError ? (
+          <div className="mt-3">
+            <ErrorBox
+              message={
+                preferences.error instanceof Error
+                  ? preferences.error.message
+                  : 'Failed to load preferences'
+              }
+            />
+          </div>
+        ) : null}
         <ul className="mt-3 space-y-2">
-          {(preferences.data ?? []).map((p) => (
+          {(Array.isArray(preferences.data) ? preferences.data : []).map((p) => (
             <li
               key={`${p.preference_type}-${p.value}`}
               className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-sm"
