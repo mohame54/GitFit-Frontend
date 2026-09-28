@@ -12,6 +12,14 @@ import type { ChatMessage, ChatRequest, ChatResponse } from '@/types/api';
 export const ONBOARDING_MESSAGE =
   "I'm new, help me set up my food preferences";
 
+/** The automatic opener is sent to the agent, but it is not a user-typed bubble. */
+function withoutOnboardingPrompt(messages: ChatMessage[]): ChatMessage[] {
+  return messages.filter(
+    (message) =>
+      message.role !== 'user' || message.content.trim() !== ONBOARDING_MESSAGE,
+  );
+}
+
 /**
  * Chat protocol: send only the latest { message, sessionId? }.
  * Identity is the Supabase access token (Authorization: Bearer). Backend owns the transcript.
@@ -21,12 +29,14 @@ export function useChat() {
   const { profileId } = useAuth();
   const initial = loadChatState();
   const [sessionId, setSessionId] = useState<string | null>(initial.sessionId);
-  const [messages, setMessages] = useState<ChatMessage[]>(initial.messages);
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    withoutOnboardingPrompt(initial.messages),
+  );
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    saveChatState({ sessionId, messages });
+    saveChatState({ sessionId, messages: withoutOnboardingPrompt(messages) });
   }, [sessionId, messages]);
 
   const postChat = useCallback(
@@ -81,17 +91,11 @@ export function useChat() {
     setError(null);
     setSending(true);
     setSessionId(null);
-
-    const userMessage: ChatMessage = {
-      role: 'user',
-      content: ONBOARDING_MESSAGE,
-    };
-    setMessages([userMessage]);
+    setMessages([]);
 
     try {
       const response = await postChat(ONBOARDING_MESSAGE, null);
       const nextMessages: ChatMessage[] = [
-        userMessage,
         { role: 'assistant', content: response.text },
       ];
 

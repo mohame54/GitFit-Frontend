@@ -1,3 +1,4 @@
+import { MarkdownText } from '@/components/MarkdownText';
 import { cn } from '@/lib/utils';
 
 export function ChatMessageBubble({
@@ -12,13 +13,13 @@ export function ChatMessageBubble({
     <div className={cn('flex', isUser ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm whitespace-pre-wrap',
+          'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm',
           isUser
             ? 'rounded-br-md bg-brand-600 text-white'
             : 'rounded-bl-md bg-slate-100 text-slate-800',
         )}
       >
-        {content}
+        <MarkdownText content={content} />
       </div>
     </div>
   );
