@@ -55,14 +55,18 @@ export function RecipeCard({
           ) : null}
         </div>
         <div className="flex items-center gap-3 text-sm text-slate-600">
-          <span className="inline-flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            {recipe.ready_in_minutes} min
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Flame className="h-4 w-4" />
-            {recipe.calories} kcal
-          </span>
+          {recipe.ready_in_minutes != null ? (
+            <span className="inline-flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              {recipe.ready_in_minutes} min
+            </span>
+          ) : null}
+          {recipe.calories != null ? (
+            <span className="inline-flex items-center gap-1">
+              <Flame className="h-4 w-4" />
+              {recipe.calories} kcal
+            </span>
+          ) : null}
         </div>
         <DietBadges recipe={recipe} />
       </div>

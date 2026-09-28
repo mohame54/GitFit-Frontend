@@ -224,15 +224,80 @@ export function useSubmitFeedback() {
   });
 }
 
+export const MAX_RECIPES_PER_GENERATE = 5;
+
+function isGeneratedRecipe(value: unknown): value is GeneratedRecipe {
+  if (!value || typeof value !== 'object') return false;
+  const row = value as GeneratedRecipe;
+  return (
+    typeof row.id === 'string' &&
+    typeof row.title === 'string' &&
+    Array.isArray(row.ingredients) &&
+    Array.isArray(row.steps)
+  );
+}
+
+function unwrapGeneratedRecipes(body: unknown): GeneratedRecipe[] {
+  const list = Array.isArray(body)
+    ? body
+    : body &&
+        typeof body === 'object' &&
+        'recipes' in body &&
+        Array.isArray((body as { recipes: unknown }).recipes)
+      ? (body as { recipes: unknown[] }).recipes
+      : [body];
+  return list.filter(isGeneratedRecipe);
+}
+
+function uniqueRecipes(recipes: GeneratedRecipe[]): GeneratedRecipe[] {
+  const seen = new Set<string>();
+  const unique: GeneratedRecipe[] = [];
+  for (const recipe of recipes) {
+    if (seen.has(recipe.id)) continue;
+    seen.add(recipe.id);
+    unique.push(recipe);
+    if (unique.length >= MAX_RECIPES_PER_GENERATE) break;
+  }
+  return unique;
+}
+
 export function useGenerateRecipe() {
   const { profileId } = useAuth();
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (prompt?: string) =>
-      api<GeneratedRecipe>('/api/generate', {
-        method: 'POST',
-        body: JSON.stringify(prompt ? { prompt } : {}),
-      }),
+    mutationFn: async (prompt?: string) => {
+      const payload = JSON.stringify(prompt ? { prompt } : {});
+      const results = await Promise.allSettled(
+        Array.from({ length: MAX_RECIPES_PER_GENERATE }, () =>
+          api<unknown>('/api/generate', { method: 'POST', body: payload }),
+        ),
+      );
+
+      const recipes: GeneratedRecipe[] = [];
+      const failures: string[] = [];
+      for (const result of results) {
+        if (result.status === 'fulfilled') {
+          recipes.push(...unwrapGeneratedRecipes(result.value));
+          continue;
+        }
+        failures.push(
+          result.reason instanceof Error
+            ? result.reason.message
+            : 'Recipe generation failed',
+        );
+      }
+
+      const unique = uniqueRecipes(recipes);
+      if (!unique.length) {
+        throw new Error(failures[0] ?? 'Generation returned no recipes');
+      }
+
+      const warning =
+        failures.length > 0
+          ? `Generated ${unique.length} of ${MAX_RECIPES_PER_GENERATE}. ${failures[0]}`
+          : null;
+      return { recipes: unique, warning };
+    },
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['generated', profileId] });
     },

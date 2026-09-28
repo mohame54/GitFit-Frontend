@@ -5,13 +5,49 @@ import type { API, Direction } from 'react-tinder-card';
 import { SwipeCard } from '@/components/SwipeCard';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, ErrorBox, Spinner } from '@/components/ui/Feedback';
-import { useRecommendations, useSubmitFeedback } from '@/hooks/useApi';
-import type { Recommendation } from '@/types/api';
+import {
+  useRecommendationHistory,
+  useRecommendations,
+  useSubmitFeedback,
+} from '@/hooks/useApi';
+import type { Recommendation, RecommendationHistoryItem } from '@/types/api';
+
+function recommendationsFromHistory(
+  items: RecommendationHistoryItem[],
+): Recommendation[] {
+  const seen = new Set<string>();
+  const recipes: Recommendation[] = [];
+  for (const item of items) {
+    const recipe = item.recipe;
+    if (!recipe || seen.has(recipe.id)) continue;
+    seen.add(recipe.id);
+    recipes.push({
+      score: item.score ?? 0,
+      recipe: {
+        id: recipe.id,
+        title: recipe.title,
+        image_url: recipe.image_url ?? null,
+        ready_in_minutes: recipe.ready_in_minutes ?? null,
+        servings: null,
+        calories: recipe.calories ?? null,
+        protein_g: 0,
+        carbs_g: 0,
+        fat_g: 0,
+        vegan: false,
+        vegetarian: false,
+        gluten_free: false,
+        dairy_free: false,
+      },
+    });
+  }
+  return recipes;
+}
 
 export function HomePage() {
   const navigate = useNavigate();
-  const { data, isLoading, isError, error, refetch, isFetching } =
+  const { data, isPending, isSuccess, isError, error, refetch, isFetching } =
     useRecommendations(10);
+  const history = useRecommendationHistory(20);
   const feedback = useSubmitFeedback();
 
   const [stack, setStack] = useState<Recommendation[] | null>(null);
@@ -19,14 +55,31 @@ export function HomePage() {
   const childRefs = useRef<Map<string, API | null>>(new Map());
   const fetchingMore = useRef(false);
 
-  const activeStack = stack ?? data ?? [];
+  const historyStack = useMemo(
+    () => recommendationsFromHistory(history.data ?? []),
+    [history.data],
+  );
+  const live = data ?? [];
+  const activeStack =
+    stack ??
+    (live.length > 0 ? live : history.isPending ? [] : historyStack);
+  const waitingForFeed =
+    stack === null &&
+    (isPending || (live.length === 0 && history.isPending));
 
   useEffect(() => {
-    if (stack === null && data) {
-      setStack(data);
-      if (data.length === 0) setExhausted(true);
+    if (!isSuccess) return;
+    const live = data ?? [];
+    setStack((current) => {
+      if (current && current.length > 0) return current;
+      if (live.length > 0) return live;
+      if (history.isPending) return current;
+      return historyStack;
+    });
+    if (live.length === 0 && !history.isPending && historyStack.length === 0) {
+      setExhausted(true);
     }
-  }, [data, stack]);
+  }, [isSuccess, data, history.isPending, historyStack]);
 
   useEffect(() => {
     if (
@@ -88,7 +141,7 @@ export function HomePage() {
     if (api) await api.swipe(dir);
   };
 
-  if (isLoading && activeStack.length === 0) {
+  if (waitingForFeed && !isError) {
     return <Spinner label="Loading recommendations…" />;
   }
 

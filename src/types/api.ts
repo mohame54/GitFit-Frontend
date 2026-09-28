@@ -10,9 +10,9 @@ export interface Recipe {
   id: string;
   title: string;
   image_url: string | null;
-  ready_in_minutes: number;
-  servings: number;
-  calories: number;
+  ready_in_minutes: number | null;
+  servings: number | null;
+  calories: number | null;
   protein_g: number;
   carbs_g: number;
   fat_g: number;
@@ -41,7 +41,9 @@ export interface RecipeAttribute {
 
 export interface RecipeIngredient {
   name: string;
-  amount: string | null;
+  amount: number | string | null;
+  unit?: string | null;
+  aisle?: string | null;
 }
 
 export interface RecipeDetail {
@@ -122,7 +124,8 @@ export interface GeneratedRecipe {
   id: string;
   user_id?: string;
   title: string;
-  ingredients: { name: string; amount: string | null }[];
+  image_url?: string | null;
+  ingredients: RecipeIngredient[];
   steps: string[];
   tags: { type: string; value: string }[];
   calories: number | null;

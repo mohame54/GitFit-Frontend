@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/Button';
 import { Textarea } from '@/components/ui/Textarea';
 import { ErrorBox, Spinner } from '@/components/ui/Feedback';
 import { useRecipe, useSubmitFeedback } from '@/hooks/useApi';
-import { cn } from '@/lib/utils';
+import { cn, formatIngredientQuantity } from '@/lib/utils';
 
 export function RecipeDetailPage() {
   const { recipeId } = useParams();
@@ -76,7 +76,14 @@ export function RecipeDetailPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">{recipe.title}</h1>
           <p className="mt-1 text-sm text-slate-600">
-            {recipe.ready_in_minutes} min · {recipe.servings} servings
+            {[
+              recipe.ready_in_minutes != null
+                ? `${recipe.ready_in_minutes} min`
+                : null,
+              recipe.servings != null ? `${recipe.servings} servings` : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
           </p>
           <div className="mt-2">
             <DietBadges recipe={recipe} />
@@ -85,7 +92,7 @@ export function RecipeDetailPage() {
 
         <div className="grid grid-cols-4 gap-2 rounded-2xl bg-white p-3 text-center shadow-sm">
           {[
-            ['Cal', recipe.calories],
+            ['Cal', recipe.calories ?? '—'],
             ['P', `${recipe.protein_g}g`],
             ['C', `${recipe.carbs_g}g`],
             ['F', `${recipe.fat_g}g`],
@@ -101,12 +108,15 @@ export function RecipeDetailPage() {
           <section className="rounded-2xl bg-white p-4 shadow-sm">
             <h2 className="font-semibold">Ingredients</h2>
             <ul className="mt-2 space-y-1 text-sm text-slate-700">
-              {ingredients.map((ing) => (
-                <li key={`${ing.name}-${ing.amount}`}>
-                  {ing.name}
-                  {ing.amount ? ` — ${ing.amount}` : ''}
-                </li>
-              ))}
+              {ingredients.map((ing, index) => {
+                const quantity = formatIngredientQuantity(ing);
+                return (
+                  <li key={`${ing.name}-${quantity}-${index}`}>
+                    {ing.name}
+                    {quantity ? ` — ${quantity}` : ''}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ) : null}
