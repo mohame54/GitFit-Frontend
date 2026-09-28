@@ -8,19 +8,17 @@ RUN npm ci
 
 COPY . .
 
+# Optional overrides. Do not ENV empty values — that shadows .env.production.
 ARG VITE_SUPABASE_URL
 ARG VITE_SUPABASE_ANON_KEY
 ARG VITE_API_BASE_URL
 ARG VITE_API_KEY
 
-ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
-ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
-ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
-ENV VITE_API_KEY=$VITE_API_KEY
-
-RUN test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY"
-
-RUN npm run build
+RUN if [ -z "$VITE_SUPABASE_URL" ]; then unset VITE_SUPABASE_URL; fi && \
+    if [ -z "$VITE_SUPABASE_ANON_KEY" ]; then unset VITE_SUPABASE_ANON_KEY; fi && \
+    if [ -z "$VITE_API_BASE_URL" ]; then unset VITE_API_BASE_URL; fi && \
+    if [ -z "$VITE_API_KEY" ]; then unset VITE_API_KEY; fi && \
+    npm run build
 
 # Stage 2 — serve
 FROM nginx:alpine
