@@ -2,6 +2,10 @@ import { supabase } from '@/auth/supabase';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
+if (!BASE_URL) {
+  throw new Error('VITE_API_BASE_URL is not set');
+}
+
 export async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
