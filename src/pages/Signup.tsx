@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthProvider';
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ErrorBox } from '@/components/ui/Feedback';
@@ -79,6 +80,9 @@ export function SignupPage() {
             {submitting ? 'Creating…' : 'Sign up'}
           </Button>
         </form>
+        <div className="mt-4">
+          <GoogleSignInButton label="Continue with Google" />
+        </div>
         <p className="mt-4 text-center text-sm text-slate-600">
           Already have an account?{' '}
           <Link className="font-medium text-brand-700" to="/login">

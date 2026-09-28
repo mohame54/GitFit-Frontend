@@ -13,9 +13,10 @@ import { HistoryPage } from '@/pages/History';
 import { ProfilePage } from '@/pages/Profile';
 
 function RootRedirect() {
-  const { session, loading } = useAuth();
+  const { session, loading, onboardingComplete } = useAuth();
   if (loading) return <Spinner />;
   if (!session) return <Navigate to="/login" replace />;
+  if (!onboardingComplete) return <Navigate to="/onboarding" replace />;
   return <Navigate to="/home" replace />;
 }
 

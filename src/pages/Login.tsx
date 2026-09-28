@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthProvider';
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { ErrorBox } from '@/components/ui/Feedback';
 
 export function LoginPage() {
-  const { login, session, loading } = useAuth();
+  const { login, session, onboardingComplete, loading } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -14,7 +15,9 @@ export function LoginPage() {
   const [submitting, setSubmitting] = useState(false);
 
   if (!loading && session) {
-    return <Navigate to="/home" replace />;
+    return (
+      <Navigate to={onboardingComplete ? '/home' : '/onboarding'} replace />
+    );
   }
 
   async function onSubmit(e: FormEvent) {
@@ -62,6 +65,9 @@ export function LoginPage() {
             {submitting ? 'Signing in…' : 'Sign in'}
           </Button>
         </form>
+        <div className="mt-4">
+          <GoogleSignInButton label="Continue with Google" />
+        </div>
         <p className="mt-4 text-center text-sm text-slate-600">
           No account?{' '}
           <Link className="font-medium text-brand-700" to="/signup">

@@ -23,6 +23,7 @@ interface AuthContextValue {
     password: string,
     displayName: string,
   ) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   markOnboardingComplete: () => Promise<void>;
 }
@@ -102,6 +103,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const signInWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/`,
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+    if (error) throw error;
+  }, []);
+
   const signOut = useCallback(async () => {
     clearChatHistory();
     await supabase.auth.signOut();
@@ -126,10 +138,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       login,
       signup,
+      signInWithGoogle,
       signOut,
       markOnboardingComplete,
     }),
-    [user, session, loading, login, signup, signOut, markOnboardingComplete],
+    [
+      user,
+      session,
+      loading,
+      login,
+      signup,
+      signInWithGoogle,
+      signOut,
+      markOnboardingComplete,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
